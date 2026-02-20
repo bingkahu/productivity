@@ -1,449 +1,728 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="nebula">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VORTEX — Cosmic Productivity Suite</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;500;600;700;800&family=Syne+Mono&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VORTEX II — Cosmic Productivity System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <canvas id="starfield"></canvas>
-  <div id="cursor-glow"></div>
 
-  <!-- SPLASH SCREEN -->
-  <div id="splash">
-    <div class="splash-inner">
-      <div class="splash-orb"></div>
-      <div class="splash-title">VORTEX</div>
-      <div class="splash-sub">Cosmic Productivity Suite</div>
-      <div class="splash-loader">
-        <div class="loader-bar"></div>
-      </div>
-      <div class="splash-hint">initializing your universe...</div>
+<!-- CANVAS LAYERS -->
+<canvas id="c-nebula" class="bg-canvas" aria-hidden="true"></canvas>
+<canvas id="c-stars" class="bg-canvas" aria-hidden="true"></canvas>
+<canvas id="c-particles" class="bg-canvas" aria-hidden="true"></canvas>
+<canvas id="c-confetti" class="overlay-canvas" aria-hidden="true"></canvas>
+
+<!-- CURSOR -->
+<div id="cursor-dot" aria-hidden="true"></div>
+<div id="cursor-ring" aria-hidden="true"></div>
+<div id="cursor-trail-container" aria-hidden="true"></div>
+
+<!-- SPLASH -->
+<div id="splash" role="status" aria-label="Loading VORTEX">
+  <div class="splash-core">
+    <canvas id="splash-canvas" width="300" height="300"></canvas>
+    <div class="splash-wordmark">VORTEX <span class="splash-ii">II</span></div>
+    <div class="splash-tagline">Cosmic Productivity System</div>
+    <div class="splash-progress-track"><div id="splash-bar" class="splash-bar"></div></div>
+    <div id="splash-status" class="splash-status">Initializing universe…</div>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div id="cmd-overlay" class="cmd-overlay hidden" role="dialog" aria-modal="true" aria-label="Command Palette">
+  <div class="cmd-palette">
+    <div class="cmd-input-row">
+      <span class="cmd-icon">⌘</span>
+      <input type="text" id="cmd-input" placeholder="Search commands, notes, tasks…" autocomplete="off" spellcheck="false"/>
+      <kbd class="cmd-close-key">ESC</kbd>
+    </div>
+    <div id="cmd-results" class="cmd-results"></div>
+    <div class="cmd-footer">
+      <span><kbd>↑↓</kbd> Navigate</span>
+      <span><kbd>Enter</kbd> Select</span>
+      <span><kbd>Esc</kbd> Close</span>
     </div>
   </div>
+</div>
 
-  <!-- MAIN APP -->
-  <div id="app" class="hidden">
+<!-- NOTIFICATION STACK -->
+<div id="notif-stack" class="notif-stack" aria-live="polite"></div>
 
-    <!-- SIDEBAR NAV -->
-    <nav id="sidebar">
-      <div class="logo">
-        <span class="logo-icon">✦</span>
-        <span class="logo-text">VORTEX</span>
+<!-- ACHIEVEMENT POPUP -->
+<div id="achievement-popup" class="achievement-popup hidden" role="status"></div>
+
+<!-- DAILY SUMMARY MODAL -->
+<div id="summary-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-box modal-summary">
+    <div class="modal-header">
+      <h2 class="modal-title">Daily Mission Report</h2>
+      <button class="modal-close" id="summary-close" aria-label="Close">✕</button>
+    </div>
+    <div id="summary-content" class="summary-content"></div>
+  </div>
+</div>
+
+<!-- EXPORT/IMPORT MODAL -->
+<div id="data-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Data Vault</h2>
+      <button class="modal-close" id="data-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="data-modal-body">
+      <div class="data-section">
+        <div class="data-section-title">Export</div>
+        <p class="data-section-desc">Download a full JSON snapshot of all your data.</p>
+        <button id="btn-export" class="btn-action btn-teal">⬇ Export JSON</button>
       </div>
-      <ul class="nav-links">
-        <li class="nav-item active" data-panel="focus"><span class="nav-icon">◎</span><span class="nav-label">Focus</span></li>
-        <li class="nav-item" data-panel="habits"><span class="nav-icon">◈</span><span class="nav-label">Habits</span></li>
-        <li class="nav-item" data-panel="tasks"><span class="nav-icon">◧</span><span class="nav-label">Tasks</span></li>
-        <li class="nav-item" data-panel="notes"><span class="nav-icon">◉</span><span class="nav-label">Notes</span></li>
-        <li class="nav-item" data-panel="mood"><span class="nav-icon">◕</span><span class="nav-label">Mood</span></li>
-        <li class="nav-item" data-panel="stats"><span class="nav-icon">◆</span><span class="nav-label">Stats</span></li>
-      </ul>
-      <div class="sidebar-footer">
-        <div class="sidebar-date" id="sidebar-date"></div>
-        <div class="sidebar-time" id="sidebar-time"></div>
+      <div class="data-divider"></div>
+      <div class="data-section">
+        <div class="data-section-title">Import</div>
+        <p class="data-section-desc">Restore from a previously exported JSON file.</p>
+        <label class="btn-action btn-amber" for="import-file-input" style="cursor:pointer">⬆ Choose File</label>
+        <input type="file" id="import-file-input" accept=".json" style="display:none"/>
+        <div id="import-status" class="import-status"></div>
       </div>
+      <div class="data-divider"></div>
+      <div class="data-section">
+        <div class="data-section-title danger-zone">Danger Zone</div>
+        <button id="btn-reset-all" class="btn-action btn-danger">⚠ Reset All Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THEME PICKER MODAL -->
+<div id="theme-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Theme Engine</h2>
+      <button class="modal-close" id="theme-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="theme-grid" id="theme-grid"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="app-shell hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="sidebar-logo">
+      <div class="logo-glyph">◈</div>
+      <div class="logo-words"><span class="logo-v">VORTEX</span><span class="logo-n">II</span></div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-panel="focus" title="Focus Timer (Ctrl+1)">
+        <span class="nav-icon">◎</span><span class="nav-label">Focus</span>
+        <span class="nav-badge" id="nb-focus" style="display:none"></span>
+      </button>
+      <button class="nav-btn" data-panel="tasks" title="Tasks (Ctrl+2)">
+        <span class="nav-icon">◧</span><span class="nav-label">Tasks</span>
+        <span class="nav-badge" id="nb-tasks">0</span>
+      </button>
+      <button class="nav-btn" data-panel="habits" title="Habits (Ctrl+3)">
+        <span class="nav-icon">◈</span><span class="nav-label">Habits</span>
+        <span class="nav-badge" id="nb-habits">0</span>
+      </button>
+      <button class="nav-btn" data-panel="notes" title="Notes (Ctrl+4)">
+        <span class="nav-icon">◉</span><span class="nav-label">Notes</span>
+        <span class="nav-badge" id="nb-notes">0</span>
+      </button>
+      <button class="nav-btn" data-panel="mood" title="Mood (Ctrl+5)">
+        <span class="nav-icon">◕</span><span class="nav-label">Mood</span>
+      </button>
+      <button class="nav-btn" data-panel="stats" title="Stats (Ctrl+6)">
+        <span class="nav-icon">◆</span><span class="nav-label">Stats</span>
+      </button>
+      <button class="nav-btn" data-panel="rewards" title="Rewards (Ctrl+7)">
+        <span class="nav-icon">✦</span><span class="nav-label">Rewards</span>
+        <span class="nav-badge" id="nb-rewards" style="display:none">!</span>
+      </button>
     </nav>
 
-    <!-- MAIN CONTENT -->
-    <main id="main-content">
+    <div class="sidebar-tools">
+      <button class="tool-btn" id="btn-cmd" title="Command Palette (Ctrl+K)">⌘</button>
+      <button class="tool-btn" id="btn-theme" title="Theme Engine">◑</button>
+      <button class="tool-btn" id="btn-data" title="Data Vault">⬢</button>
+      <button class="tool-btn" id="btn-summary" title="Daily Summary">≋</button>
+      <button class="tool-btn" id="btn-sound" title="Sound Toggle">♪</button>
+    </div>
 
-      <!-- FOCUS PANEL -->
-      <section class="panel active" id="panel-focus">
-        <div class="panel-header">
-          <h1 class="panel-title">Focus Engine</h1>
-          <div class="panel-subtitle">Enter flow state</div>
-        </div>
-        <div class="focus-layout">
-          <div class="timer-zone">
-            <div class="timer-orbit-wrapper">
-              <svg class="timer-orbit-svg" viewBox="0 0 300 300" id="orbit-svg">
-                <defs>
-                  <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#ff6b35;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#f7c59f;stop-opacity:1" />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                </defs>
-                <circle cx="150" cy="150" r="120" class="orbit-track" />
-                <circle cx="150" cy="150" r="120" class="orbit-progress" id="orbit-progress" filter="url(#glow)" />
-                <circle cx="150" cy="30" r="8" class="orbit-planet" id="orbit-planet" filter="url(#glow)" />
-              </svg>
-              <div class="timer-core">
-                <div class="timer-mode-label" id="timer-mode-label">FOCUS</div>
-                <div class="timer-display" id="timer-display">25:00</div>
-                <div class="timer-session-count">Session <span id="session-num">1</span> of 4</div>
+    <div class="sidebar-clock">
+      <div id="sb-time" class="sb-time">00:00:00</div>
+      <div id="sb-date" class="sb-date"></div>
+      <div class="sb-xp-row">
+        <span id="sb-xp-label" class="sb-xp-label">XP: 0</span>
+        <div class="sb-xp-track"><div id="sb-xp-bar" class="sb-xp-bar"></div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main id="main" class="main-area" role="main">
+
+    <!-- ======================================================
+         FOCUS PANEL
+    ====================================================== -->
+    <section id="panel-focus" class="panel active" aria-label="Focus Timer">
+      <header class="panel-hdr">
+        <h1 class="panel-title">Focus Engine</h1>
+        <p class="panel-sub">Precision timing · Zero drift · Deep work</p>
+      </header>
+
+      <div class="focus-grid">
+
+        <!-- Timer Core -->
+        <div class="timer-card">
+          <div class="timer-ring-wrap">
+            <svg class="timer-svg" viewBox="0 0 320 320" role="img" aria-label="Timer progress">
+              <defs>
+                <linearGradient id="tg1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" class="tg-stop-a"/><stop offset="100%" class="tg-stop-b"/>
+                </linearGradient>
+                <filter id="tf-glow">
+                  <feGaussianBlur stdDeviation="6" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+                <filter id="tf-soft">
+                  <feGaussianBlur stdDeviation="2" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <!-- Outer track -->
+              <circle cx="160" cy="160" r="140" class="ring-track-outer"/>
+              <!-- Secondary ring -->
+              <circle cx="160" cy="160" r="120" class="ring-track-inner"/>
+              <!-- Main progress -->
+              <circle cx="160" cy="160" r="140" class="ring-progress-glow" id="ring-glow" filter="url(#tf-glow)"/>
+              <circle cx="160" cy="160" r="140" class="ring-progress" id="ring-main"/>
+              <!-- Secondary lap ring -->
+              <circle cx="160" cy="160" r="120" class="ring-lap" id="ring-lap"/>
+              <!-- Tip dot -->
+              <circle cx="160" cy="20" r="7" class="ring-tip" id="ring-tip" filter="url(#tf-soft)"/>
+              <!-- Lap tip -->
+              <circle cx="160" cy="40" r="5" class="ring-lap-tip" id="ring-lap-tip" filter="url(#tf-soft)"/>
+            </svg>
+            <div class="timer-inner">
+              <div class="timer-mode-chip" id="t-mode-chip">FOCUS</div>
+              <div class="timer-digits" id="t-digits">25:00</div>
+              <div class="timer-ms" id="t-ms">.00</div>
+              <div class="timer-info-row">
+                <span class="timer-info" id="t-session-info">Session 1 of 4</span>
               </div>
-            </div>
-            <div class="timer-controls">
-              <button class="btn-timer" id="btn-start">▶ START</button>
-              <button class="btn-timer btn-secondary" id="btn-reset">↺ RESET</button>
-              <button class="btn-timer btn-secondary" id="btn-skip">⊳⊳ SKIP</button>
-            </div>
-            <div class="timer-modes">
-              <button class="mode-btn active" data-mode="focus" data-duration="25">Focus 25m</button>
-              <button class="mode-btn" data-mode="short" data-duration="5">Break 5m</button>
-              <button class="mode-btn" data-mode="long" data-duration="15">Long 15m</button>
-              <button class="mode-btn" data-mode="custom" data-duration="0">Custom</button>
-            </div>
-            <div id="custom-duration-input" class="custom-input hidden">
-              <input type="number" id="custom-minutes" placeholder="minutes" min="1" max="120" />
-              <button id="set-custom-duration">SET</button>
+              <div class="timer-task-display" id="t-task-display"></div>
             </div>
           </div>
 
-          <div class="focus-side">
-            <div class="focus-task-zone">
-              <div class="focus-zone-label">Current Mission</div>
-              <input type="text" id="focus-task-input" class="focus-task-input" placeholder="What are you working on?" maxlength="80" />
+          <div class="timer-btns">
+            <button class="tbtn tbtn-secondary" id="tbtn-reset" title="Reset (R)">↺</button>
+            <button class="tbtn tbtn-primary" id="tbtn-start" title="Start/Pause (Space)">▶</button>
+            <button class="tbtn tbtn-secondary" id="tbtn-lap" title="Lap (L)">◷</button>
+            <button class="tbtn tbtn-secondary" id="tbtn-skip" title="Skip (S)">⊳⊳</button>
+          </div>
+
+          <div class="timer-mode-row">
+            <button class="tmode active" data-mode="focus" data-mins="25">Focus 25m</button>
+            <button class="tmode" data-mode="shortbreak" data-mins="5">Break 5m</button>
+            <button class="tmode" data-mode="longbreak" data-mins="15">Long 15m</button>
+            <button class="tmode" data-mode="custom" data-mins="0">Custom</button>
+          </div>
+          <div id="custom-wrap" class="custom-wrap hidden">
+            <input type="number" id="custom-mins" min="1" max="240" placeholder="Minutes" class="custom-mins-input"/>
+            <button id="custom-set" class="btn-sm btn-teal">SET</button>
+          </div>
+
+          <div class="timer-task-wrap">
+            <input type="text" id="timer-task-input" class="timer-task-input" placeholder="Current mission…" maxlength="80"/>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="focus-right">
+
+          <!-- Ambient Sound -->
+          <div class="focus-card">
+            <div class="card-title">Ambient Environment</div>
+            <div class="ambient-grid">
+              <button class="amb-btn active" data-snd="none">✦ None</button>
+              <button class="amb-btn" data-snd="rain">🌧 Rain</button>
+              <button class="amb-btn" data-snd="forest">🌲 Forest</button>
+              <button class="amb-btn" data-snd="ocean">🌊 Ocean</button>
+              <button class="amb-btn" data-snd="fire">🔥 Fire</button>
+              <button class="amb-btn" data-snd="space">🌌 Space</button>
+              <button class="amb-btn" data-snd="cafe">☕ Café</button>
+              <button class="amb-btn" data-snd="thunder">⛈ Thunder</button>
             </div>
-            <div class="ambient-zone">
-              <div class="focus-zone-label">Ambient Sound</div>
-              <div class="ambient-controls">
-                <button class="ambient-btn active" data-sound="none">✦ None</button>
-                <button class="ambient-btn" data-sound="rain">☂ Rain</button>
-                <button class="ambient-btn" data-sound="forest">♧ Forest</button>
-                <button class="ambient-btn" data-sound="waves">〰 Waves</button>
-                <button class="ambient-btn" data-sound="fire">✺ Fire</button>
-                <button class="ambient-btn" data-sound="space">◉ Space</button>
-              </div>
-              <div class="volume-row">
-                <span>Vol</span>
-                <input type="range" id="ambient-volume" min="0" max="100" value="40" />
-                <span id="vol-display">40%</span>
-              </div>
+            <div class="vol-row">
+              <span class="vol-label">Volume</span>
+              <input type="range" id="amb-vol" min="0" max="100" value="35" class="vol-slider"/>
+              <span id="vol-pct" class="vol-pct">35%</span>
             </div>
-            <div class="focus-log">
-              <div class="focus-zone-label">Session Log</div>
-              <div id="session-log" class="session-log-list"></div>
+          </div>
+
+          <!-- Laps -->
+          <div class="focus-card">
+            <div class="card-title">Lap Splits</div>
+            <div id="laps-list" class="laps-list">
+              <div class="laps-empty">No laps recorded</div>
             </div>
-            <div class="focus-stats-mini">
-              <div class="mini-stat">
-                <div class="mini-stat-val" id="today-sessions">0</div>
-                <div class="mini-stat-label">Today</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-stat-val" id="total-focus-time">0h</div>
-                <div class="mini-stat-label">Total Focus</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-stat-val" id="streak-display">0🔥</div>
-                <div class="mini-stat-label">Streak</div>
-              </div>
+          </div>
+
+          <!-- Session Log -->
+          <div class="focus-card">
+            <div class="card-title">Session Log</div>
+            <div id="session-log" class="session-log"></div>
+          </div>
+
+          <!-- Mini Stats -->
+          <div class="focus-mini-stats">
+            <div class="mini-stat-card">
+              <div class="ms-val" id="ms-today">0</div>
+              <div class="ms-label">Today</div>
+            </div>
+            <div class="mini-stat-card">
+              <div class="ms-val" id="ms-total">0h</div>
+              <div class="ms-label">Total</div>
+            </div>
+            <div class="mini-stat-card">
+              <div class="ms-val" id="ms-streak">0🔥</div>
+              <div class="ms-label">Streak</div>
+            </div>
+            <div class="mini-stat-card">
+              <div class="ms-val" id="ms-week">0</div>
+              <div class="ms-label">This Week</div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- HABITS PANEL -->
-      <section class="panel" id="panel-habits">
-        <div class="panel-header">
-          <h1 class="panel-title">Habit Constellation</h1>
-          <div class="panel-subtitle">Build your galaxy one day at a time</div>
+    <!-- ======================================================
+         TASKS PANEL
+    ====================================================== -->
+    <section id="panel-tasks" class="panel" aria-label="Mission Control">
+      <header class="panel-hdr">
+        <h1 class="panel-title">Mission Control</h1>
+        <p class="panel-sub">Track, prioritize, and crush every objective</p>
+      </header>
+
+      <div class="tasks-toolbar">
+        <div class="task-add-row">
+          <input type="text" id="task-text-input" class="task-main-input" placeholder="New mission description…" maxlength="200"/>
+          <select id="task-pri" class="task-select" title="Priority">
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+          <select id="task-cat" class="task-select" title="Category">
+            <option value="work">💼 Work</option>
+            <option value="personal">🏠 Personal</option>
+            <option value="health">🏃 Health</option>
+            <option value="learn">📚 Learn</option>
+            <option value="creative">🎨 Create</option>
+            <option value="finance">💰 Finance</option>
+          </select>
+          <input type="date" id="task-due-input" class="task-due-input" title="Due date"/>
+          <button id="add-task-btn" class="btn-primary">LAUNCH</button>
         </div>
-        <div class="habits-layout">
-          <div class="habits-left">
-            <div class="add-habit-form">
-              <input type="text" id="habit-name-input" placeholder="New habit name..." maxlength="40" />
-              <div class="habit-options-row">
-                <select id="habit-icon-select">
-                  <option value="💧">💧 Hydrate</option>
-                  <option value="🏃">🏃 Exercise</option>
-                  <option value="📚">📚 Read</option>
-                  <option value="🧘">🧘 Meditate</option>
-                  <option value="🎨">🎨 Create</option>
-                  <option value="🌱">🌱 Nature</option>
-                  <option value="💊">💊 Medicine</option>
-                  <option value="✍️">✍️ Journal</option>
-                  <option value="🎵">🎵 Music</option>
-                  <option value="🌙">🌙 Sleep</option>
-                  <option value="⭐">⭐ Custom</option>
-                </select>
-                <select id="habit-freq">
-                  <option value="daily">Daily</option>
-                  <option value="weekday">Weekdays</option>
-                  <option value="weekend">Weekends</option>
-                </select>
-              </div>
-              <button id="add-habit-btn" class="btn-primary">+ Add Habit</button>
-            </div>
-
-            <div id="habits-list" class="habits-list"></div>
+        <div class="task-filter-row">
+          <button class="flt active" data-f="all">All</button>
+          <button class="flt" data-f="active">Active</button>
+          <button class="flt" data-f="done">Done</button>
+          <button class="flt" data-f="critical">Critical</button>
+          <button class="flt" data-f="today">Due Today</button>
+          <div class="flt-search-wrap">
+            <input type="text" id="task-search" placeholder="Search…" class="flt-search"/>
           </div>
-          <div class="habits-right">
-            <canvas id="constellation-canvas" width="400" height="400"></canvas>
-            <div class="constellation-legend">Your completion pattern — each star is a check-in</div>
-            <div class="habit-weekly-grid" id="habit-weekly-grid">
-              <div class="weekly-grid-header">
-                <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
-              </div>
-              <div id="weekly-grid-body"></div>
-            </div>
+          <div class="task-sort-wrap">
+            <select id="task-sort" class="task-select-sm">
+              <option value="date_desc">Newest</option>
+              <option value="date_asc">Oldest</option>
+              <option value="priority">Priority</option>
+              <option value="due">Due Date</option>
+              <option value="alpha">A–Z</option>
+            </select>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- TASKS PANEL -->
-      <section class="panel" id="panel-tasks">
-        <div class="panel-header">
-          <h1 class="panel-title">Mission Control</h1>
-          <div class="panel-subtitle">Tasks that matter</div>
+      <div id="tasks-container" class="tasks-container">
+        <!-- Tasks rendered here -->
+      </div>
+
+      <div class="tasks-footer">
+        <div class="tf-counts" id="tf-counts">0 missions active</div>
+        <div class="tf-progress-wrap">
+          <div class="tf-progress-track"><div id="tf-progress-bar" class="tf-progress-bar"></div></div>
+          <span id="tf-pct" class="tf-pct">0%</span>
         </div>
-        <div class="tasks-layout">
-          <div class="tasks-add-zone">
-            <div class="task-input-row">
-              <input type="text" id="task-input" placeholder="Describe your mission..." maxlength="120" />
-              <select id="task-priority">
-                <option value="critical">🔴 Critical</option>
-                <option value="high">🟠 High</option>
-                <option value="medium" selected>🟡 Medium</option>
-                <option value="low">🟢 Low</option>
+        <button id="clear-done-btn" class="btn-ghost-sm">Clear completed</button>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         HABITS PANEL
+    ====================================================== -->
+    <section id="panel-habits" class="panel" aria-label="Habit Constellation">
+      <header class="panel-hdr">
+        <h1 class="panel-title">Habit Constellation</h1>
+        <p class="panel-sub">Daily rituals · Atomic progress · Compounding results</p>
+      </header>
+
+      <div class="habits-layout">
+
+        <div class="habits-left">
+          <!-- Add Habit Form -->
+          <div class="habit-add-card">
+            <div class="card-title">New Ritual</div>
+            <input type="text" id="habit-name-in" class="w-full-input" placeholder="Habit name…" maxlength="50"/>
+            <div class="habit-form-row">
+              <select id="habit-icon-in" class="task-select">
+                <option value="💧">💧 Hydrate</option>
+                <option value="🏃">🏃 Exercise</option>
+                <option value="📚">📚 Read</option>
+                <option value="🧘">🧘 Meditate</option>
+                <option value="🎨">🎨 Create</option>
+                <option value="🌱">🌱 Nature</option>
+                <option value="💊">💊 Medicine</option>
+                <option value="✍️">✍️ Journal</option>
+                <option value="🎵">🎵 Music</option>
+                <option value="🌙">🌙 Sleep early</option>
+                <option value="🥗">🥗 Eat well</option>
+                <option value="⭐">⭐ Custom</option>
               </select>
-              <select id="task-category">
-                <option value="work">💼 Work</option>
-                <option value="personal">🏠 Personal</option>
-                <option value="health">🏃 Health</option>
-                <option value="learning">📚 Learn</option>
-                <option value="creative">🎨 Create</option>
+              <select id="habit-freq-in" class="task-select">
+                <option value="daily">Daily</option>
+                <option value="weekdays">Weekdays</option>
+                <option value="weekends">Weekends</option>
+                <option value="mwf">Mon/Wed/Fri</option>
+                <option value="tth">Tue/Thu</option>
               </select>
-              <input type="date" id="task-due" />
-              <button id="add-task-btn" class="btn-primary">LAUNCH</button>
+              <select id="habit-color-in" class="task-select">
+                <option value="cyan">Cyan</option>
+                <option value="orange">Orange</option>
+                <option value="pink">Pink</option>
+                <option value="lime">Lime</option>
+                <option value="amber">Amber</option>
+                <option value="violet">Violet</option>
+              </select>
             </div>
-            <div class="task-filters">
-              <button class="filter-btn active" data-filter="all">All</button>
-              <button class="filter-btn" data-filter="active">Active</button>
-              <button class="filter-btn" data-filter="completed">Done</button>
-              <button class="filter-btn" data-filter="critical">Critical</button>
-              <div class="task-search-wrap">
-                <input type="text" id="task-search" placeholder="Search missions..." />
-              </div>
-            </div>
+            <input type="text" id="habit-goal-in" class="w-full-input" placeholder="Goal or motivation (optional)…" maxlength="100"/>
+            <button id="add-habit-btn" class="btn-primary mt-8">+ Add Habit</button>
           </div>
-          <div id="tasks-list" class="tasks-list"></div>
-          <div class="tasks-footer">
-            <span id="task-count">0 missions remaining</span>
-            <button id="clear-completed" class="btn-ghost">Clear completed</button>
-            <div class="task-progress-bar-wrap">
-              <div class="task-progress-bar" id="task-progress-bar"></div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- NOTES PANEL -->
-      <section class="panel" id="panel-notes">
-        <div class="panel-header">
-          <h1 class="panel-title">The Void</h1>
-          <div class="panel-subtitle">Capture your thoughts before they disappear</div>
+          <!-- Habit List -->
+          <div id="habits-list" class="habits-list"></div>
         </div>
-        <div class="notes-layout">
-          <div class="notes-sidebar">
-            <button id="new-note-btn" class="btn-primary full-width">+ New Note</button>
-            <div class="notes-search-wrap">
-              <input type="text" id="notes-search" placeholder="Search the void..." />
-            </div>
-            <div id="notes-list-sidebar" class="notes-list-sidebar"></div>
+
+        <div class="habits-right">
+          <canvas id="constellation-cvs" class="constellation-cvs" width="440" height="440"></canvas>
+          <div class="constellation-note">Each star is a completed check-in · Connections = simultaneous habits</div>
+
+          <div class="habit-calendar-title">This Week's Grid</div>
+          <div class="habit-week-grid" id="habit-week-grid"></div>
+
+          <div class="habit-summary" id="habit-summary"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         NOTES PANEL
+    ====================================================== -->
+    <section id="panel-notes" class="panel" aria-label="The Void — Notes">
+      <header class="panel-hdr">
+        <h1 class="panel-title">The Void</h1>
+        <p class="panel-sub">Capture · Organize · Recall</p>
+      </header>
+
+      <div class="notes-layout">
+        <div class="notes-panel-left">
+          <div class="notes-sidebar-tools">
+            <button id="new-note-btn" class="btn-primary">+ New Note</button>
+            <input type="text" id="notes-search-in" class="notes-search" placeholder="Search notes…"/>
           </div>
-          <div class="notes-editor-zone" id="notes-editor-zone">
-            <div class="note-empty-state" id="note-empty-state">
-              <div class="empty-icon">◉</div>
-              <div class="empty-text">Select a note or create a new one</div>
-            </div>
-            <div id="note-editor" class="note-editor hidden">
-              <div class="note-editor-header">
-                <input type="text" id="note-title-input" class="note-title-input" placeholder="Note title..." />
-                <div class="note-meta-row">
-                  <select id="note-tag-select">
-                    <option value="none">No tag</option>
-                    <option value="idea">💡 Idea</option>
-                    <option value="important">⚡ Important</option>
-                    <option value="todo">✅ Todo</option>
-                    <option value="research">🔬 Research</option>
-                    <option value="personal">🌙 Personal</option>
-                  </select>
-                  <div class="note-colors">
-                    <div class="note-color-dot active" data-color="default"></div>
-                    <div class="note-color-dot" data-color="rose"></div>
-                    <div class="note-color-dot" data-color="amber"></div>
-                    <div class="note-color-dot" data-color="cyan"></div>
-                    <div class="note-color-dot" data-color="purple"></div>
-                  </div>
-                  <button id="delete-note-btn" class="btn-ghost btn-danger">Delete</button>
-                  <span id="note-saved-indicator" class="saved-indicator">✓ saved</span>
+          <div class="notes-filter-row">
+            <button class="note-flt active" data-f="all">All</button>
+            <button class="note-flt" data-f="idea">💡</button>
+            <button class="note-flt" data-f="important">⚡</button>
+            <button class="note-flt" data-f="todo">✅</button>
+            <button class="note-flt" data-f="research">🔬</button>
+            <button class="note-flt" data-f="personal">🌙</button>
+          </div>
+          <div id="notes-list" class="notes-list"></div>
+        </div>
+
+        <div class="notes-editor-col" id="notes-editor-col">
+          <div class="note-empty" id="note-empty">
+            <div class="note-empty-icon">◉</div>
+            <div class="note-empty-text">Select a note or create a new one</div>
+            <button class="btn-primary" id="note-empty-new">+ New Note</button>
+          </div>
+
+          <div id="note-editor" class="note-editor hidden">
+            <div class="note-editor-top">
+              <input type="text" id="note-title-in" class="note-title-in" placeholder="Untitled Note"/>
+              <div class="note-meta-bar">
+                <select id="note-tag-in" class="note-meta-sel">
+                  <option value="none">No tag</option>
+                  <option value="idea">💡 Idea</option>
+                  <option value="important">⚡ Important</option>
+                  <option value="todo">✅ Todo</option>
+                  <option value="research">🔬 Research</option>
+                  <option value="personal">🌙 Personal</option>
+                </select>
+                <div class="note-colors-row" id="note-colors-row">
+                  <button class="nc-dot active" data-c="default" title="Default"></button>
+                  <button class="nc-dot" data-c="rose" title="Rose"></button>
+                  <button class="nc-dot" data-c="amber" title="Amber"></button>
+                  <button class="nc-dot" data-c="teal" title="Teal"></button>
+                  <button class="nc-dot" data-c="violet" title="Violet"></button>
+                  <button class="nc-dot" data-c="lime" title="Lime"></button>
                 </div>
-                <div class="note-toolbar">
-                  <button class="toolbar-btn" data-cmd="bold"><b>B</b></button>
-                  <button class="toolbar-btn" data-cmd="italic"><i>I</i></button>
-                  <button class="toolbar-btn" data-cmd="underline"><u>U</u></button>
-                  <button class="toolbar-btn" data-cmd="insertUnorderedList">• List</button>
-                  <button class="toolbar-btn" data-cmd="insertOrderedList">1. List</button>
-                  <button class="toolbar-btn" data-cmd="formatBlock" data-val="h2">H2</button>
-                  <button class="toolbar-btn" data-cmd="formatBlock" data-val="blockquote">" Quote</button>
-                  <button class="toolbar-btn" id="word-count-btn">Words: 0</button>
-                </div>
+                <span id="note-status" class="note-status">saved</span>
+                <span id="note-wc" class="note-wc">0 words</span>
+                <span id="note-rt" class="note-rt">~0 min read</span>
+                <button id="del-note-btn" class="btn-danger-ghost">Delete</button>
               </div>
-              <div id="note-body" class="note-body" contenteditable="true" spellcheck="true"></div>
+            </div>
+
+            <div class="note-toolbar" id="note-toolbar">
+              <button class="ntb" data-cmd="bold"><b>B</b></button>
+              <button class="ntb" data-cmd="italic"><i>I</i></button>
+              <button class="ntb" data-cmd="underline"><u>U</u></button>
+              <button class="ntb" data-cmd="strikeThrough"><s>S</s></button>
+              <span class="ntb-sep"></span>
+              <button class="ntb" data-cmd="formatBlock" data-val="h2">H2</button>
+              <button class="ntb" data-cmd="formatBlock" data-val="h3">H3</button>
+              <button class="ntb" data-cmd="formatBlock" data-val="blockquote">"</button>
+              <button class="ntb" data-cmd="formatBlock" data-val="pre">⌥</button>
+              <span class="ntb-sep"></span>
+              <button class="ntb" data-cmd="insertUnorderedList">• List</button>
+              <button class="ntb" data-cmd="insertOrderedList">1. List</button>
+              <span class="ntb-sep"></span>
+              <button class="ntb" data-cmd="justifyLeft">⫷</button>
+              <button class="ntb" data-cmd="justifyCenter">⊟</button>
+              <button class="ntb" data-cmd="justifyRight">⫸</button>
+              <span class="ntb-sep"></span>
+              <button class="ntb" id="ntb-link">🔗</button>
+              <button class="ntb" id="ntb-hr">─</button>
+              <button class="ntb" id="ntb-clear">✕</button>
+            </div>
+
+            <div id="note-body" class="note-body" contenteditable="true" spellcheck="true" aria-label="Note content"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         MOOD PANEL
+    ====================================================== -->
+    <section id="panel-mood" class="panel" aria-label="Energy Spectrum">
+      <header class="panel-hdr">
+        <h1 class="panel-title">Energy Spectrum</h1>
+        <p class="panel-sub">Multi-axis tracking · Trend detection · Self awareness</p>
+      </header>
+
+      <div class="mood-layout">
+        <div class="mood-checkin-zone">
+          <div class="mood-card">
+            <div class="card-title">Check In</div>
+
+            <div class="mood-emoji-row" id="mood-emoji-row">
+              <button class="me-btn" data-v="5" title="Phenomenal">🚀<span>Phenomenal</span></button>
+              <button class="me-btn" data-v="4" title="Great">😄<span>Great</span></button>
+              <button class="me-btn" data-v="3" title="Okay">😐<span>Okay</span></button>
+              <button class="me-btn" data-v="2" title="Low">😔<span>Low</span></button>
+              <button class="me-btn" data-v="1" title="Rough">🌧<span>Rough</span></button>
+            </div>
+
+            <div class="mood-sliders">
+              <div class="ms-row">
+                <span class="ms-lbl">Mood</span>
+                <input type="range" class="mood-slider" id="sl-mood" min="1" max="10" value="5"/>
+                <span class="ms-val" id="sv-mood">5</span>
+              </div>
+              <div class="ms-row">
+                <span class="ms-lbl">Energy</span>
+                <input type="range" class="mood-slider" id="sl-energy" min="1" max="10" value="5"/>
+                <span class="ms-val" id="sv-energy">5</span>
+              </div>
+              <div class="ms-row">
+                <span class="ms-lbl">Focus</span>
+                <input type="range" class="mood-slider" id="sl-focus-mood" min="1" max="10" value="5"/>
+                <span class="ms-val" id="sv-focus">5</span>
+              </div>
+              <div class="ms-row">
+                <span class="ms-lbl">Stress</span>
+                <input type="range" class="mood-slider" id="sl-stress" min="1" max="10" value="5"/>
+                <span class="ms-val" id="sv-stress">5</span>
+              </div>
+            </div>
+
+            <div class="mood-tags-zone">
+              <div class="mood-tags-title">Feelings</div>
+              <div class="mood-tags-grid" id="mood-tags-grid">
+                <button class="mt-tag" data-t="focused">focused</button>
+                <button class="mt-tag" data-t="creative">creative</button>
+                <button class="mt-tag" data-t="anxious">anxious</button>
+                <button class="mt-tag" data-t="tired">tired</button>
+                <button class="mt-tag" data-t="motivated">motivated</button>
+                <button class="mt-tag" data-t="calm">calm</button>
+                <button class="mt-tag" data-t="stressed">stressed</button>
+                <button class="mt-tag" data-t="happy">happy</button>
+                <button class="mt-tag" data-t="grateful">grateful</button>
+                <button class="mt-tag" data-t="distracted">distracted</button>
+                <button class="mt-tag" data-t="overwhelmed">overwhelmed</button>
+                <button class="mt-tag" data-t="content">content</button>
+              </div>
+            </div>
+
+            <textarea id="mood-note" class="mood-note-ta" placeholder="Anything on your mind? (optional)" rows="2"></textarea>
+            <button id="log-mood-btn" class="btn-primary w-full">Log State</button>
+            <div id="mood-response" class="mood-response hidden"></div>
+          </div>
+        </div>
+
+        <div class="mood-charts-zone">
+          <div class="chart-tabs">
+            <button class="ct-tab active" data-ct="30d">30 Days</button>
+            <button class="ct-tab" data-ct="90d">90 Days</button>
+            <button class="ct-tab" data-ct="radar">Radar</button>
+          </div>
+          <canvas id="mood-main-chart" class="mood-canvas" width="600" height="220"></canvas>
+          <canvas id="mood-radar-chart" class="mood-canvas hidden" width="300" height="300"></canvas>
+
+          <div class="mood-insights-row" id="mood-insights-row"></div>
+
+          <div class="mood-history-title">Recent Entries</div>
+          <div id="mood-history" class="mood-history"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         STATS PANEL
+    ====================================================== -->
+    <section id="panel-stats" class="panel" aria-label="Mission Report">
+      <header class="panel-hdr">
+        <h1 class="panel-title">Mission Report</h1>
+        <p class="panel-sub">Analytics · Achievements · Activity history</p>
+      </header>
+
+      <div class="stats-layout">
+        <!-- Hero row -->
+        <div class="stats-hero-row" id="stats-hero-row"></div>
+
+        <!-- Charts row -->
+        <div class="stats-charts-grid">
+          <div class="sc-card">
+            <div class="sc-title">Weekly Focus (hours)</div>
+            <canvas id="chart-weekly-focus" width="380" height="180"></canvas>
+          </div>
+          <div class="sc-card">
+            <div class="sc-title">Task Categories</div>
+            <canvas id="chart-donut" width="280" height="180"></canvas>
+          </div>
+          <div class="sc-card">
+            <div class="sc-title">Focus Trend (30d)</div>
+            <canvas id="chart-trend" width="380" height="180"></canvas>
+          </div>
+          <div class="sc-card">
+            <div class="sc-title">Productivity Radar</div>
+            <canvas id="chart-radar" width="280" height="180"></canvas>
+          </div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="stats-heatmap-card">
+          <div class="sc-title">Activity Heatmap — 90 Days</div>
+          <div id="heatmap" class="heatmap-grid"></div>
+          <div class="heatmap-legend">
+            <span>Less</span>
+            <span class="hl-cell hl-0"></span>
+            <span class="hl-cell hl-1"></span>
+            <span class="hl-cell hl-2"></span>
+            <span class="hl-cell hl-3"></span>
+            <span class="hl-cell hl-4"></span>
+            <span>More</span>
+          </div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="achievements-zone">
+          <div class="sc-title">Achievements</div>
+          <div id="achievements-grid" class="achievements-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         REWARDS PANEL
+    ====================================================== -->
+    <section id="panel-rewards" class="panel" aria-label="Cosmic Rewards">
+      <header class="panel-hdr">
+        <h1 class="panel-title">Cosmic Rewards</h1>
+        <p class="panel-sub">Level up · Collect badges · Unlock the cosmos</p>
+      </header>
+
+      <div class="rewards-layout">
+        <div class="rewards-profile-card">
+          <div class="rp-avatar" id="rp-avatar">◈</div>
+          <div class="rp-name" id="rp-name">Space Explorer</div>
+          <div class="rp-level-badge" id="rp-level">Level 1</div>
+          <div class="rp-xp-row">
+            <span id="rp-xp-text">0 / 100 XP</span>
+          </div>
+          <div class="rp-xp-track"><div class="rp-xp-fill" id="rp-xp-fill"></div></div>
+          <div class="rp-stats-mini">
+            <div class="rpm">
+              <span class="rpm-v" id="rpm-total-xp">0</span>
+              <span class="rpm-l">Total XP</span>
+            </div>
+            <div class="rpm">
+              <span class="rpm-v" id="rpm-badges">0</span>
+              <span class="rpm-l">Badges</span>
+            </div>
+            <div class="rpm">
+              <span class="rpm-v" id="rpm-streak">0</span>
+              <span class="rpm-l">Streak 🔥</span>
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- MOOD PANEL -->
-      <section class="panel" id="panel-mood">
-        <div class="panel-header">
-          <h1 class="panel-title">Energy Spectrum</h1>
-          <div class="panel-subtitle">Track your inner weather</div>
-        </div>
-        <div class="mood-layout">
-          <div class="mood-checkin-card">
-            <div class="mood-checkin-title">How are you right now?</div>
-            <div class="mood-selector">
-              <div class="mood-option" data-mood="5" data-label="Phenomenal">
-                <div class="mood-face">🚀</div>
-                <div class="mood-face-label">Phenomenal</div>
-              </div>
-              <div class="mood-option" data-mood="4" data-label="Great">
-                <div class="mood-face">😄</div>
-                <div class="mood-face-label">Great</div>
-              </div>
-              <div class="mood-option" data-mood="3" data-label="Okay">
-                <div class="mood-face">😐</div>
-                <div class="mood-face-label">Okay</div>
-              </div>
-              <div class="mood-option" data-mood="2" data-label="Low">
-                <div class="mood-face">😔</div>
-                <div class="mood-face-label">Low</div>
-              </div>
-              <div class="mood-option" data-mood="1" data-label="Rough">
-                <div class="mood-face">🌧️</div>
-                <div class="mood-face-label">Rough</div>
-              </div>
-            </div>
-            <div class="energy-row">
-              <label>Energy Level</label>
-              <input type="range" id="energy-slider" min="1" max="10" value="5" />
-              <span id="energy-val">5</span>
-            </div>
-            <textarea id="mood-note-input" placeholder="Any thoughts? (optional)" rows="2"></textarea>
-            <div class="mood-tags">
-              <div class="mood-tag-label">Feelings:</div>
-              <div class="mood-tags-list" id="mood-tags-list">
-                <span class="mood-tag" data-tag="focused">focused</span>
-                <span class="mood-tag" data-tag="anxious">anxious</span>
-                <span class="mood-tag" data-tag="creative">creative</span>
-                <span class="mood-tag" data-tag="tired">tired</span>
-                <span class="mood-tag" data-tag="motivated">motivated</span>
-                <span class="mood-tag" data-tag="calm">calm</span>
-                <span class="mood-tag" data-tag="stressed">stressed</span>
-                <span class="mood-tag" data-tag="happy">happy</span>
-                <span class="mood-tag" data-tag="grateful">grateful</span>
-                <span class="mood-tag" data-tag="distracted">distracted</span>
-              </div>
-            </div>
-            <button id="log-mood-btn" class="btn-primary">Log Mood</button>
-            <div id="mood-feedback" class="mood-feedback hidden"></div>
+        <div class="rewards-right">
+          <div class="rewards-tabs">
+            <button class="rt-tab active" data-rt="badges">Badges</button>
+            <button class="rt-tab" data-rt="milestones">Milestones</button>
+            <button class="rt-tab" data-rt="shop">Cosmic Shop</button>
           </div>
 
-          <div class="mood-history-zone">
-            <div class="mood-chart-title">30-Day Mood Map</div>
-            <canvas id="mood-chart" width="500" height="200"></canvas>
-            <div class="mood-insights" id="mood-insights">
-              <div class="insight-card" id="avg-mood-card">
-                <div class="insight-val">—</div>
-                <div class="insight-label">Avg Mood</div>
-              </div>
-              <div class="insight-card" id="avg-energy-card">
-                <div class="insight-val">—</div>
-                <div class="insight-label">Avg Energy</div>
-              </div>
-              <div class="insight-card" id="best-day-card">
-                <div class="insight-val">—</div>
-                <div class="insight-label">Best Day</div>
-              </div>
-              <div class="insight-card" id="entries-card">
-                <div class="insight-val">0</div>
-                <div class="insight-label">Check-ins</div>
-              </div>
-            </div>
-            <div class="recent-moods-title">Recent Check-ins</div>
-            <div id="recent-moods-list" class="recent-moods-list"></div>
+          <div id="rt-badges" class="rt-panel active">
+            <div id="badges-grid" class="badges-grid"></div>
+          </div>
+          <div id="rt-milestones" class="rt-panel hidden">
+            <div id="milestones-list" class="milestones-list"></div>
+          </div>
+          <div id="rt-shop" class="rt-panel hidden">
+            <div id="shop-grid" class="shop-grid"></div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- STATS PANEL -->
-      <section class="panel" id="panel-stats">
-        <div class="panel-header">
-          <h1 class="panel-title">Mission Report</h1>
-          <div class="panel-subtitle">Your productivity across the cosmos</div>
-        </div>
-        <div class="stats-layout">
-          <div class="stats-hero">
-            <div class="stats-hero-card" id="stat-hero-focus">
-              <div class="hero-icon">◎</div>
-              <div class="hero-number" id="stat-total-sessions">0</div>
-              <div class="hero-label">Focus Sessions</div>
-              <div class="hero-sub">All time</div>
-            </div>
-            <div class="stats-hero-card" id="stat-hero-tasks">
-              <div class="hero-icon">◧</div>
-              <div class="hero-number" id="stat-tasks-done">0</div>
-              <div class="hero-label">Tasks Crushed</div>
-              <div class="hero-sub">Completed missions</div>
-            </div>
-            <div class="stats-hero-card" id="stat-hero-streak">
-              <div class="hero-icon">🔥</div>
-              <div class="hero-number" id="stat-streak">0</div>
-              <div class="hero-label">Day Streak</div>
-              <div class="hero-sub">Keep going</div>
-            </div>
-            <div class="stats-hero-card" id="stat-hero-habits">
-              <div class="hero-icon">◈</div>
-              <div class="hero-number" id="stat-habit-rate">0%</div>
-              <div class="hero-label">Habit Rate</div>
-              <div class="hero-sub">This week</div>
-            </div>
-          </div>
-          <div class="stats-charts-row">
-            <div class="stats-chart-card">
-              <div class="chart-card-title">Weekly Focus Hours</div>
-              <canvas id="weekly-focus-chart" width="380" height="200"></canvas>
-            </div>
-            <div class="stats-chart-card">
-              <div class="chart-card-title">Task Categories</div>
-              <canvas id="task-donut-chart" width="300" height="200"></canvas>
-            </div>
-          </div>
-          <div class="stats-achievements">
-            <div class="achievements-title">Achievements</div>
-            <div id="achievements-grid" class="achievements-grid"></div>
-          </div>
-          <div class="stats-heatmap-zone">
-            <div class="heatmap-title">Activity Heatmap</div>
-            <div id="activity-heatmap" class="activity-heatmap"></div>
-          </div>
-        </div>
-      </section>
+  </main>
+</div>
 
-    </main>
-  </div>
-
-  <!-- NOTIFICATION TOAST -->
-  <div id="toast" class="toast hidden">
-    <span id="toast-icon">✦</span>
-    <span id="toast-msg">Notification</span>
-  </div>
-
-  <!-- CONFETTI CANVAS -->
-  <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
