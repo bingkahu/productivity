@@ -1,3 +1,13 @@
+// Emergency Kill Switch (Put at the VERY TOP of script.js)
+setTimeout(() => {
+    const splash = document.getElementById('splash');
+    if (splash) {
+        splash.style.opacity = '0';
+        splash.style.pointerEvents = 'none';
+        setTimeout(() => splash.remove(), 600);
+        console.log("Force cleared splash screen via timeout.");
+    }
+}, 2000);
 /* ============================================================
    VORTEX II — Cosmic Productivity System
    script.js — Complete Application Logic
@@ -1851,30 +1861,6 @@ const App = {
     BG.resize();
   }
 };
-//update 1
-
-// Emergency Force-Hide Splash
-window.addEventListener('load', () => {
-  const splash = document.getElementById('splash');
-  const appShell = document.getElementById('app');
-  
-  if (splash) {
-    // Fade out the splash screen
-    splash.style.opacity = '0';
-    splash.style.transition = 'opacity 0.5s ease';
-    
-    // Show the actual app shell (since it has the 'hidden' class by default)
-    if (appShell) {
-      appShell.classList.remove('hidden');
-    }
-
-    // Remove splash from DOM after fade
-    setTimeout(() => {
-      splash.remove();
-    }, 500);
-  }
-});
-//update 1
 
 // ============================================================
 // ── IGNITION ────────────────────────────────────────────────
