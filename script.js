@@ -1851,6 +1851,30 @@ const App = {
     BG.resize();
   }
 };
+//update 1
+
+// Emergency Force-Hide Splash
+window.addEventListener('load', () => {
+  const splash = document.getElementById('splash');
+  const appShell = document.getElementById('app');
+  
+  if (splash) {
+    // Fade out the splash screen
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity 0.5s ease';
+    
+    // Show the actual app shell (since it has the 'hidden' class by default)
+    if (appShell) {
+      appShell.classList.remove('hidden');
+    }
+
+    // Remove splash from DOM after fade
+    setTimeout(() => {
+      splash.remove();
+    }, 500);
+  }
+});
+//update 1
 
 // ============================================================
 // ── IGNITION ────────────────────────────────────────────────
