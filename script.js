@@ -1,11 +1,4 @@
-// Emergency Kill Switch (Put at the VERY TOP of script.js)
-setTimeout(() => {
-    const splash = document.getElementById('splash');
-    if (splash) {
-        splash.style.opacity = '0';
-        splash.style.pointerEvents = 'none';
-        setTimeout(() => splash.remove(), 600);
-        console.log("Force cleared splash screen via timeout.");
+
     }
 }, 2000);
 /* ============================================================
